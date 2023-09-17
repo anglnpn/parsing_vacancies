@@ -15,6 +15,7 @@ def user_interaction():
     platform = input('Выберите платформу для поиска вакансий: "HeadHunter", "SuperJob" ')
     if platform == "HeadHunter":
         job_api = HeadHunterAPI(town, search_query)
+        print(job_api.get_vacancies())
     elif platform == "SuperJob":
         job_api = SuperJobAPI(town, search_query)
         print(job_api.get_vacancies())
