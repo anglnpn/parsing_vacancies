@@ -1,8 +1,5 @@
-import json
-import os
-import requests
 
-from classes import SuperJobAPI, HeadHunterAPI
+from classes import SuperJobAPI, HeadHunterAPI, JSONFileManager
 
 
 def user_interaction():
@@ -10,15 +7,23 @@ def user_interaction():
     Функция для работы с пользователем
     :return:
     """
-    town = input("Введите город: ")
-    search_query = input("Введите поисковый запрос: ")
+    town = input("Введите город: ").title()
+    search_query = input("Введите поисковый запрос: ").title()
     platform = input('Выберите платформу для поиска вакансий: "HeadHunter", "SuperJob" ')
     if platform == "HeadHunter":
         job_api = HeadHunterAPI(town, search_query)
-        print(job_api.get_vacancies())
+        unknown_file = job_api.get_vacancies()
+        js_file = JSONFileManager()
+        js_file.write(unknown_file)
+        js_file.read()
+        # print(job_api.get_vacancies())
     elif platform == "SuperJob":
         job_api = SuperJobAPI(town, search_query)
-        print(job_api.get_vacancies())
+        unknown_file = job_api.get_vacancies()
+        js_file = JSONFileManager()
+        js_file.write(unknown_file)
+        js_file.read()
+        # print(job_api.get_vacancies())
 
     # top_n = int(input("Введите количество вакансий для вывода в топ N: "))
     # filter_words = input("Введите ключевые слова для фильтрации вакансий: ").split()
