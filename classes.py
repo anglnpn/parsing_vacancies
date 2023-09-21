@@ -60,17 +60,25 @@ class SuperJobAPI(JobAPI):
         base_url = 'https://api.superjob.ru/2.0/'
         endpoint = 'vacancies'
         headers = {'X-Api-App-Id': sj_api_key}
-        # определяем параметры запроса
+
+        """
+        Определяем вводимые параметры запроса
+        """
         params = {
             'town': self.town,
             'keyword': self.search_query,
-            'count': 100
+            'count': 50
         }
-        # выполняем запрос
+
+        """
+        Выполняем запрос к сайту по API ключу и вводным параметрам
+        """
         response = requests.get(f'{base_url}{endpoint}', headers=headers, params=params)
 
-        # возвращаем список вакансий в случае исполнения запроса без ошибок
-        # если возникла ошибка выводим статус ошибки
+        """
+        Возвращает список вакансий в случае исполнения запроса без ошибок.
+        Если возникла ошибка выводит статус ошибки
+        """
         if response.status_code == 200:
             vacancies = response.json()
             return vacancies['objects']
@@ -79,7 +87,7 @@ class SuperJobAPI(JobAPI):
 
     def formatting_vacancies(self, data):
         """
-          Получает список json с вакансиями
+        Получает список json с вакансиями.
         Форматирует вакансии и записывает данные в словарь
         для удобной работы.
 
@@ -117,9 +125,9 @@ class HeadHunterAPI(JobAPI):
     def __init__(self, town, search_query):
         """
 
-         :param town: город пользователя
-         :param search_query: поисковой запрос пользователя
-         """
+        :param town: город пользователя
+        :param search_query: поисковой запрос пользователя
+        """
         self.vacancies = None
         self.areas_id = None
         self.town = town
@@ -150,12 +158,16 @@ class HeadHunterAPI(JobAPI):
                     if key == self.town:
                         self.areas_id = value
 
-        # определяем параметры запроса
+        """
+        Определяем вводимые параметры запроса
+        """
         params = {'text': self.search_query,
                   'area': self.areas_id,
-                  'per_page': 100}
+                  'per_page': 50}
 
-        # выполняем запрос
+        """
+        Выполняем запрос к сайту по API ключу и вводным параметрам
+        """
         response = requests.get(f'{base_url}{endpoint}', params=params)
 
         if response.status_code == 200:
@@ -167,7 +179,7 @@ class HeadHunterAPI(JobAPI):
 
     def formatting_vacancies(self, data):
         """
-          Получает список json с вакансиями
+        Получает список json с вакансиями.
         Форматирует вакансии и записывает данные в словарь
         для удобной работы.
 
@@ -178,7 +190,9 @@ class HeadHunterAPI(JobAPI):
 
         formatted_vacancies_dict = {'vacancies': []}
 
-        # форматируем вакансии
+        """
+        Форматируем вакансии
+        """
         for prof in self.vacancies:
             """
             payment_from инициализируется значением из prof['salary']['from'],
@@ -279,15 +293,42 @@ class Vacancy:
     Класс для сортировки вакансий
     """
 
-    def __init__(self, file_vac):
-        self.file_vac = file_vac["vacancies"]
-        for element in self.file_vac:
-            self.title = element["profession"]
-            self.town = element["town"]
-            self.payment_from = element["payment_from"]
-            self.payment_to = element["payment_to"]
-            self.experience = element["experience"]
-            self.url = element["url"]
+    def __init__(self, element):
+        self.title = element["profession"]
+        self.town = element["town"]
+        self.payment_from = element["payment_from"]
+        self.payment_to = element["payment_to"]
+        self.experience = element["experience"]
+        self.url = element["url"]
+
+    def __lt__(self, other):
+        return self.payment_from < other.payment_from
+
+    def __repr__(self):
+        if self.payment_from == 0 and self.payment_to == 0:
+            return f'Вакансия: {self.title} в городе {self.town}. ' \
+                   f'Заработная плата по договоренности. Необходимый стаж: {self.experience}.\n' \
+                   f'Ссылка на вакансию: {self.url}\n'
+
+        elif self.payment_from == 0:
+            return f'Вакансия: {self.title} в городе {self.town}. ' \
+                   f'Заработная плата до {self.payment_to} рублей. Необходимый стаж: {self.experience}.\n' \
+                   f'Ссылка на вакансию: {self.url}\n'
+
+        elif self.payment_to == 0:
+            return f'Вакансия: {self.title} в городе {self.town}. ' \
+                   f'Заработная плата от {self.payment_from} рублей. Необходимый стаж: {self.experience}.\n' \
+                   f'Ссылка на вакансию: {self.url}\n'
+
+        elif self.payment_from == self.payment_to:
+            return f'Вакансия: {self.title} в городе {self.town}. ' \
+                   f'Заработная плата {self.payment_to} рублей. Необходимый стаж: {self.experience}.\n' \
+                   f'Ссылка на вакансию: {self.url}\n'
+
+        else:
+            return f'Вакансия: {self.title} в городе {self.town}. ' \
+                   f'Заработная плата от {self.payment_from} до {self.payment_to} рублей. Необходимый стаж: {self.experience}.\n' \
+                   f'Ссылка на вакансию: {self.url}\n'
 
     def validate(self):
         """
@@ -298,23 +339,4 @@ class Vacancy:
             return False
         return True
 
-    def sorted_salary_min(self):
-        """
-         Сортировка вакансий по возрастанию цены.
-         Возвращает отсортированный список.
-         """
-        self.file_vac.sort(key=lambda x: x.get('payment_from', 0), reverse=False)
 
-        return self.file_vac
-
-    def sorted_salary_max(self):
-        """
-        Сортировка вакансий по убыванию цены.
-        Возвращает отсортированный список.
-
-        """
-        self.file_vac.sort(key=lambda x: x.get('payment_from', 0), revers=True)
-        return self.file_vac
-
-    def sorted_vac_exp(self):
-        pass
